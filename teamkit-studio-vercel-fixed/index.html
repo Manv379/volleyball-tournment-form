@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeamKit Studio — Live T-Shirt Mockup & Team Order Form</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f4f5f7;
+      color: #111827;
+    }
+    .font-jersey {
+      font-family: 'Barlow Condensed', sans-serif;
+    }
+    .mockup-stage {
+      background-color: #eef0f3;
+      background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+    input[type="range"] {
+      accent-color: #111827;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Top Header -->
+  <header class="bg-white border-b border-gray-200 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gray-900 text-white flex items-center justify-center font-jersey text-xl font-extrabold tracking-wide">
+        TK
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="text-lg font-bold tracking-tight text-gray-900">TeamKit Studio</h1>
+          <span class="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Live Mockup</span>
+        </div>
+        <p class="text-xs text-gray-500">Upload your team logo, fill player details, and preview live on garment</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <a href="/admin.html" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition">
+        Admin Portal
+      </a>
+      <button type="button" onclick="resetDefaults()" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+        Reset
+      </button>
+      <button type="button" onclick="openSummaryModal()" class="px-4 py-1.5 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition shadow-sm flex items-center gap-1.5">
+        <span>Review &amp; Submit Order</span>
+        <span id="headerCountBadge" class="px-1.5 py-0.5 text-[10px] rounded bg-white/15">3</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Split Workspace -->
+  <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-0">
+    <!-- Left Column: Live Mockup Canvas -->
+    <section class="lg:col-span-6 mockup-stage border-b lg:border-b-0 lg:border-r border-gray-200 p-6 flex flex-col items-center justify-between min-h-[540px] lg:sticky lg:top-[65px] lg:h-[calc(100vh-65px)]">
+      <!-- Top View & Team Banner -->
+      <div class="w-full max-w-md flex items-center justify-between bg-white/90 backdrop-blur px-3.5 py-2 rounded-xl border border-gray-200/80 shadow-xs">
+        <div>
+          <p id="previewTeamName" class="text-sm font-bold text-gray-900 leading-tight">Apex United FC</p>
+          <p id="previewMeta" class="text-[11px] text-gray-500">Slate Navy • Front View</p>
+        </div>
+        <div class="inline-flex rounded-lg bg-gray-100 p-0.5 border border-gray-200">
+          <button id="btnFrontView" type="button" onclick="setSide('front')" class="px-3 py-1 text-xs font-semibold rounded-md bg-white text-gray-900 shadow-2xs transition">
+            Front
+          </button>
+          <button id="btnBackView" type="button" onclick="setSide('back')" class="px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 rounded-md transition">
+            Back
+          </button>
+        </div>
+      </div>
+
+      <!-- SVG T-Shirt Mockup -->
+      <div class="relative w-full max-w-[390px] my-auto py-4 flex items-center justify-center select-none">
+        <svg id="tshirtSvg" viewBox="0 0 420 460" class="w-full h-auto drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="knitPattern" width="6" height="6" patternUnits="userSpaceOnUse">
+              <path d="M 0 3 L 3 0 L 6 3 L 3 6 Z" fill="rgba(0,0,0,0.03)" />
+            </pattern>
+            <linearGradient id="torsoShade" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#000000" stop-opacity="0.18" />
+              <stop offset="22%" stop-color="#ffffff" stop-opacity="0.08" />
+              <stop offset="50%" stop-color="#ffffff" stop-opacity="0.02" />
+              <stop offset="78%" stop-color="#000000" stop-opacity="0.05" />
+              <stop offset="100%" stop-color="#000000" stop-opacity="0.22" />
+            </linearGradient>
+            <clipPath id="shirtClip">
+              <path d="M128 52 L162 36 Q210 62 258 36 L292 52 L386 116 L346 184 L302 156 L302 424 Q210 434 118 424 L118 156 L74 184 L34 116 Z" />
+            </clipPath>
+          </defs>
+
+          <g clip-path="url(#shirtClip)">
+            <rect id="shirtBaseColor" x="0" y="0" width="420" height="460" fill="#1e293b" />
+            <rect x="0" y="0" width="420" height="460" fill="url(#knitPattern)" />
+            <rect x="0" y="0" width="420" height="460" fill="url(#torsoShade)" />
+
+            <!-- Front Graphic Layer -->
+            <g id="frontGraphicLayer">
+              <g id="logoTransformGroup" transform="translate(252, 152) scale(1)">
+                <image id="logoImage" x="-34" y="-34" width="68" height="68" preserveAspectRatio="xMidYMid meet" href="" style="display:none;" />
+                <g id="defaultLogoPlaceholder">
+                  <rect x="-32" y="-32" width="64" height="64" rx="12" fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.35)" stroke-width="1.5" stroke-dasharray="4 3" />
+                  <text x="0" y="-2" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700" opacity="0.85">YOUR</text>
+                  <text x="0" y="13" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="700" opacity="0.85">LOGO</text>
+                </g>
+              </g>
+            </g>
+
+            <!-- Back Graphic Layer -->
+            <g id="backGraphicLayer" style="display:none;">
+              <text id="backPlayerName" x="210" y="138" text-anchor="middle" fill="#ffffff" font-family="'Barlow Condensed', sans-serif" font-weight="800" font-size="30" letter-spacing="2.5">V. STARK</text>
+              <text id="backPlayerNumber" x="210" y="238" text-anchor="middle" fill="#ffffff" font-family="'Barlow Condensed', sans-serif" font-weight="800" font-size="116" letter-spacing="2">10</text>
+              <g id="backMiniLogoGroup" transform="translate(210, 282) scale(0.65)" style="display:none;">
+                <image id="backLogoImage" x="-34" y="-34" width="68" height="68" preserveAspectRatio="xMidYMid meet" href="" />
+              </g>
+            </g>
+
+            <path d="M128 52 L162 36 Q210 62 258 36 L292 52 L386 116 L346 184 L302 156 L302 424 Q210 434 118 424 L118 156 L74 184 L34 116 Z"
+                  fill="none" stroke="rgba(0,0,0,0.16)" stroke-width="2" stroke-dasharray="5 4" />
+          </g>
+
+          <path id="collarPath" d="M158 38 Q210 74 262 38 L254 52 Q210 84 166 52 Z" fill="#0f172a" opacity="0.45" />
+          <path d="M162 36 Q210 62 258 36" fill="none" stroke="rgba(0,0,0,0.25)" stroke-width="2.5" />
+        </svg>
+      </div>
+
+      <!-- Active Previewing Player Pill -->
+      <div class="w-full max-w-md bg-white/90 backdrop-blur px-4 py-2.5 rounded-xl border border-gray-200/80 flex items-center justify-between text-xs">
+        <span class="text-gray-500">Previewing Player:</span>
+        <span id="activePlayerBadge" class="font-semibold text-gray-900">#10 • V. STARK (L)</span>
+      </div>
+    </section>
+
+    <!-- Right Column: Form Filling & Team Details -->
+    <section class="lg:col-span-6 p-6 space-y-6 bg-white">
+      <!-- Step 1: Team & Garment Details -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-2.5">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-gray-800">1. Team &amp; Shirt Details</h2>
+          <span class="text-xs text-gray-400">Step 1 of 3</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="teamNameInput" class="block text-xs font-semibold text-gray-700 mb-1">Team / Organization Name *</label>
+            <input id="teamNameInput" type="text" value="Apex United FC" oninput="updateTeamDetails()" placeholder="e.g. Apex United FC"
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
+          </div>
+          <div>
+            <label for="contactEmailInput" class="block text-xs font-semibold text-gray-700 mb-1">Captain / Contact Email *</label>
+            <input id="contactEmailInput" type="email" value="" oninput="updateTeamDetails()" placeholder="captain@team.com"
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
+          </div>
+          <div>
+            <label for="contactPhoneInput" class="block text-xs font-semibold text-gray-700 mb-1">Phone / WhatsApp</label>
+            <input id="contactPhoneInput" type="tel" value="" oninput="updateTeamDetails()" placeholder="+91 98765 43210"
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
+          </div>
+          <div>
+            <label for="notesInput" class="block text-xs font-semibold text-gray-700 mb-1">Delivery / Print Notes</label>
+            <input id="notesInput" type="text" value="" oninput="updateTeamDetails()" placeholder="Optional instructions"
+                   class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent" />
+          </div>
+        </div>
+
+        <!-- Garment Color Swatches -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-semibold text-gray-700">Shirt Color</label>
+            <span id="colorNameLabel" class="text-xs text-gray-500 font-medium">Slate Navy</span>
+          </div>
+          <div id="colorSwatches" class="flex flex-wrap gap-2.5"></div>
+        </div>
+      </div>
+
+      <!-- Step 2: Logo Upload & Placement -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-2.5">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-gray-800">2. Upload Team Logo</h2>
+          <span class="text-xs text-gray-400">Step 2 of 3</span>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 p-4 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50/70 hover:border-gray-400 transition">
+          <div class="w-16 h-16 rounded-lg bg-white border border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
+            <img id="logoThumbPreview" src="" alt="Logo preview" class="max-w-full max-h-full object-contain hidden" />
+            <span id="logoThumbPlaceholder" class="text-[11px] text-gray-400 font-medium">No Logo</span>
+          </div>
+          <div class="flex-1 space-y-1.5">
+            <p class="text-xs font-semibold text-gray-800">Upload PNG, JPG, or SVG logo</p>
+            <p class="text-[11px] text-gray-500">Transparent PNG/SVG gives the cleanest print appearance. Automatically compressed for fast submission.</p>
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <label class="cursor-pointer px-3 py-1.5 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition">
+                Choose File
+                <input id="logoFileInput" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="hidden" onchange="handleLogoUpload(event)" />
+              </label>
+              <button type="button" onclick="clearLogo()" class="px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 transition">
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Placement Presets & Sliders -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-700 mb-1">Logo Placement</label>
+            <select id="placementSelect" onchange="applyPlacementPreset()" class="w-full px-2.5 py-2 text-xs font-medium border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-900">
+              <option value="left-chest" selected>Left Chest</option>
+              <option value="center-chest">Center Chest</option>
+              <option value="pocket-right">Right Chest</option>
+            </select>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-semibold text-gray-700">Logo Size</span>
+              <span id="scaleValueLabel" class="text-gray-500">100%</span>
+            </div>
+            <input id="logoScaleSlider" type="range" min="0.5" max="1.6" step="0.05" value="1" oninput="updateLogoTransform()" class="w-full mt-1.5" />
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="font-semibold text-gray-700">Vertical Offset</span>
+              <span id="yOffsetLabel" class="text-gray-500">0px</span>
+            </div>
+            <input id="logoYSlider" type="range" min="-35" max="45" step="1" value="0" oninput="updateLogoTransform()" class="w-full mt-1.5" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Team Roster Form -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between border-b border-gray-100 pb-2.5">
+          <div>
+            <h2 class="text-sm font-bold uppercase tracking-wider text-gray-800">3. Team Roster Details</h2>
+            <p class="text-[11px] text-gray-500">Click the dot button on any row to preview that player's back name &amp; number</p>
+          </div>
+          <button type="button" onclick="addPlayerRow()" class="px-3 py-1.5 text-xs font-semibold text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition">
+            + Add Player
+          </button>
+        </div>
+
+        <div class="overflow-x-auto border border-gray-200 rounded-xl">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                <th class="py-2.5 px-3">Preview</th>
+                <th class="py-2.5 px-3">Player Name</th>
+                <th class="py-2.5 px-3 w-24">Number</th>
+                <th class="py-2.5 px-3 w-28">Size</th>
+                <th class="py-2.5 px-2 w-10 text-center"></th>
+              </tr>
+            </thead>
+            <tbody id="rosterTableBody" class="divide-y divide-gray-100 text-sm"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Order Summary Modal -->
+  <div id="summaryModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <h3 class="text-base font-bold text-gray-900">Team Order &amp; Mockup Summary</h3>
+        <button type="button" onclick="closeSummaryModal()" class="text-gray-400 hover:text-gray-700 text-lg leading-none">&times;</button>
+      </div>
+      <div id="summaryModalBody" class="p-6 space-y-4 max-h-[70vh] overflow-y-auto text-sm"></div>
+      <div id="summaryModalFooter" class="px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2.5">
+        <button type="button" onclick="closeSummaryModal()" class="px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100">
+          Keep Editing
+        </button>
+        <button id="confirmSubmitBtn" type="button" onclick="submitTeamOrder()" class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+          Confirm &amp; Submit Order
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const COLORS = [
+      { name: 'Slate Navy', hex: '#1e293b', dark: true },
+      { name: 'Crisp White', hex: '#f8fafc', dark: false },
+      { name: 'Crimson Red', hex: '#dc2626', dark: true },
+      { name: 'Royal Blue', hex: '#2563eb', dark: true },
+      { name: 'Forest Green', hex: '#15803d', dark: true },
+      { name: 'Charcoal Black', hex: '#111827', dark: true },
+      { name: 'Amber Gold', hex: '#d97706', dark: false },
+      { name: 'Violet Pulse', hex: '#7c3aed', dark: true }
+    ];
+
+    const SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+
+    let state = {
+      teamName: 'Apex United FC',
+      contactEmail: '',
+      contactPhone: '',
+      notes: '',
+      color: COLORS[0],
+      side: 'front',
+      logoDataUrl: '',
+      placement: 'left-chest',
+      scale: 1,
+      yOffset: 0,
+      activePlayerId: 1,
+      players: [
+        { id: 1, name: 'V. STARK', number: '10', size: 'L' },
+        { id: 2, name: 'M. CHEN', number: '7', size: 'M' },
+        { id: 3, name: 'A. PATEL', number: '9', size: 'XL' }
+      ]
+    };
+
+    let nextPlayerId = 4;
+
+    function init() {
+      renderColorSwatches();
+      renderRoster();
+      syncMockup();
+    }
+
+    function renderColorSwatches() {
+      const container = document.getElementById('colorSwatches');
+      container.innerHTML = '';
+      COLORS.forEach((c) => {
+        const selected = state.color.name === c.name;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = c.name;
+        btn.style.backgroundColor = c.hex;
+        btn.className = `w-8 h-8 rounded-full border transition transform ${
+          selected ? 'ring-2 ring-offset-2 ring-gray-900 scale-105 border-gray-900' : 'border-gray-300 hover:scale-105'
+        }`;
+        btn.onclick = () => {
+          state.color = c;
+          renderColorSwatches();
+          syncMockup();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function updateTeamDetails() {
+      state.teamName = document.getElementById('teamNameInput').value.trim() || 'Untitled Team';
+      state.contactEmail = document.getElementById('contactEmailInput').value.trim();
+      state.contactPhone = document.getElementById('contactPhoneInput').value.trim();
+      state.notes = document.getElementById('notesInput').value.trim();
+      syncMockup();
+    }
+
+    function setSide(side) {
+      state.side = side;
+      const frontBtn = document.getElementById('btnFrontView');
+      const backBtn = document.getElementById('btnBackView');
+
+      if (side === 'front') {
+        frontBtn.className = 'px-3 py-1 text-xs font-semibold rounded-md bg-white text-gray-900 shadow-2xs transition';
+        backBtn.className = 'px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 rounded-md transition';
+      } else {
+        backBtn.className = 'px-3 py-1 text-xs font-semibold rounded-md bg-white text-gray-900 shadow-2xs transition';
+        frontBtn.className = 'px-3 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 rounded-md transition';
+      }
+      syncMockup();
+    }
+
+    function handleLogoUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const rawDataUrl = e.target.result;
+        if (file.type === 'image/svg+xml') {
+          state.logoDataUrl = rawDataUrl;
+          syncMockup();
+          return;
+        }
+        // Resize raster logos to max 600px to keep API payloads crisp & fast
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 600;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          state.logoDataUrl = canvas.toDataURL('image/png');
+          syncMockup();
+        };
+        img.src = rawDataUrl;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearLogo() {
+      state.logoDataUrl = '';
+      document.getElementById('logoFileInput').value = '';
+      syncMockup();
+    }
+
+    function applyPlacementPreset() {
+      state.placement = document.getElementById('placementSelect').value;
+      updateLogoTransform();
+    }
+
+    function updateLogoTransform() {
+      state.scale = parseFloat(document.getElementById('logoScaleSlider').value) || 1;
+      state.yOffset = parseInt(document.getElementById('logoYSlider').value, 10) || 0;
+
+      document.getElementById('scaleValueLabel').textContent = `${Math.round(state.scale * 100)}%`;
+      document.getElementById('yOffsetLabel').textContent = `${state.yOffset > 0 ? '+' : ''}${state.yOffset}px`;
+      syncMockup();
+    }
+
+    function getBaseCoords() {
+      if (state.placement === 'center-chest') return { x: 210, y: 156 };
+      if (state.placement === 'pocket-right') return { x: 168, y: 152 };
+      return { x: 252, y: 152 };
+    }
+
+    function addPlayerRow() {
+      const newNum = String(Math.floor(11 + Math.random() * 88));
+      const newPlayer = {
+        id: nextPlayerId++,
+        name: `PLAYER ${state.players.length + 1}`,
+        number: newNum,
+        size: 'L'
+      };
+      state.players.push(newPlayer);
+      state.activePlayerId = newPlayer.id;
+      renderRoster();
+      syncMockup();
+    }
+
+    function removePlayerRow(id) {
+      if (state.players.length <= 1) return;
+      state.players = state.players.filter((p) => p.id !== id);
+      if (state.activePlayerId === id) {
+        state.activePlayerId = state.players[0].id;
+      }
+      renderRoster();
+      syncMockup();
+    }
+
+    function selectActivePlayer(id) {
+      state.activePlayerId = id;
+      renderRoster();
+      syncMockup();
+    }
+
+    function updatePlayerField(id, field, value) {
+      const player = state.players.find((p) => p.id === id);
+      if (!player) return;
+      player[field] = field === 'name' ? value.toUpperCase() : value;
+      if (state.activePlayerId === id) {
+        syncMockup();
+      }
+    }
+
+    function renderRoster() {
+      const tbody = document.getElementById('rosterTableBody');
+      tbody.innerHTML = '';
+
+      state.players.forEach((player) => {
+        const isActive = player.id === state.activePlayerId;
+        const tr = document.createElement('tr');
+        tr.className = isActive ? 'bg-blue-50/50' : 'hover:bg-gray-50/70';
+
+        tr.innerHTML = `
+          <td class="py-2 px-3">
+            <button type="button" onclick="selectActivePlayer(${player.id})" title="Preview this player on back"
+                    class="w-7 h-7 rounded-md flex items-center justify-center border text-xs transition ${
+                      isActive
+                        ? 'bg-gray-900 text-white border-gray-900'
+                        : 'bg-white text-gray-500 border-gray-300 hover:text-gray-900'
+                    }">
+              ${isActive ? '●' : '○'}
+            </button>
+          </td>
+          <td class="py-2 px-3">
+            <input type="text" value="${escapeHtml(player.name)}" maxlength="16"
+                   oninput="updatePlayerField(${player.id}, 'name', this.value)"
+                   class="w-full px-2.5 py-1 text-xs font-semibold uppercase border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 bg-white" />
+          </td>
+          <td class="py-2 px-3">
+            <input type="text" value="${escapeHtml(player.number)}" maxlength="3"
+                   oninput="updatePlayerField(${player.id}, 'number', this.value)"
+                   class="w-full px-2.5 py-1 text-xs font-bold border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-900 bg-white" />
+          </td>
+          <td class="py-2 px-3">
+            <select onchange="updatePlayerField(${player.id}, 'size', this.value)"
+                    class="w-full px-2 py-1 text-xs font-medium border border-gray-200 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-gray-900">
+              ${SIZES.map((sz) => `<option value="${sz}" ${player.size === sz ? 'selected' : ''}>${sz}</option>`).join('')}
+            </select>
+          </td>
+          <td class="py-2 px-2 text-center">
+            <button type="button" onclick="removePlayerRow(${player.id})" ${state.players.length <= 1 ? 'disabled' : ''}
+                    title="Remove player"
+                    class="text-gray-400 hover:text-red-600 disabled:opacity-25 text-sm px-1">&times;</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      document.getElementById('headerCountBadge').textContent = state.players.length;
+    }
+
+    function syncMockup() {
+      const shirtBase = document.getElementById('shirtBaseColor');
+      shirtBase.setAttribute('fill', state.color.hex);
+      document.getElementById('colorNameLabel').textContent = state.color.name;
+
+      document.getElementById('previewTeamName').textContent = state.teamName;
+      document.getElementById('previewMeta').textContent =
+        `${state.color.name} • ${state.side === 'front' ? 'Front View' : 'Back View'}`;
+
+      const frontLayer = document.getElementById('frontGraphicLayer');
+      const backLayer = document.getElementById('backGraphicLayer');
+      frontLayer.style.display = state.side === 'front' ? 'inline' : 'none';
+      backLayer.style.display = state.side === 'back' ? 'inline' : 'none';
+
+      const blendMode = state.color.dark ? 'normal' : 'multiply';
+      const logoImg = document.getElementById('logoImage');
+      const backLogoImg = document.getElementById('backLogoImage');
+      const placeholder = document.getElementById('defaultLogoPlaceholder');
+      const thumbImg = document.getElementById('logoThumbPreview');
+      const thumbPlaceholder = document.getElementById('logoThumbPlaceholder');
+
+      logoImg.style.mixBlendMode = blendMode;
+      backLogoImg.style.mixBlendMode = blendMode;
+
+      if (state.logoDataUrl) {
+        logoImg.setAttribute('href', state.logoDataUrl);
+        logoImg.style.display = 'inline';
+        backLogoImg.setAttribute('href', state.logoDataUrl);
+        document.getElementById('backMiniLogoGroup').style.display = 'inline';
+        placeholder.style.display = 'none';
+
+        thumbImg.src = state.logoDataUrl;
+        thumbImg.classList.remove('hidden');
+        thumbPlaceholder.classList.add('hidden');
+      } else {
+        logoImg.style.display = 'none';
+        document.getElementById('backMiniLogoGroup').style.display = 'none';
+        placeholder.style.display = 'inline';
+
+        thumbImg.src = '';
+        thumbImg.classList.add('hidden');
+        thumbPlaceholder.classList.remove('hidden');
+      }
+
+      const coords = getBaseCoords();
+      const group = document.getElementById('logoTransformGroup');
+      group.setAttribute('transform', `translate(${coords.x}, ${coords.y + state.yOffset}) scale(${state.scale})`);
+
+      const activePlayer = state.players.find((p) => p.id === state.activePlayerId) || state.players[0];
+      const inkFill = state.color.dark ? '#ffffff' : '#111827';
+      const backNameEl = document.getElementById('backPlayerName');
+      const backNumEl = document.getElementById('backPlayerNumber');
+
+      backNameEl.textContent = activePlayer.name || 'PLAYER';
+      backNameEl.setAttribute('fill', inkFill);
+      backNumEl.textContent = activePlayer.number || '00';
+      backNumEl.setAttribute('fill', inkFill);
+
+      document.getElementById('activePlayerBadge').textContent =
+        `#${activePlayer.number || '00'} • ${activePlayer.name || 'Player'} (${activePlayer.size})`;
+    }
+
+    function openSummaryModal() {
+      const sizeCounts = {};
+      state.players.forEach((p) => {
+        sizeCounts[p.size] = (sizeCounts[p.size] || 0) + 1;
+      });
+      const sizeBreakdown = Object.entries(sizeCounts)
+        .map(([sz, count]) => `<span class="px-2 py-0.5 rounded bg-gray-100 text-gray-800 text-xs font-semibold">${sz}: ${count}</span>`)
+        .join(' ');
+
+      const rowsHtml = state.players
+        .map(
+          (p) => `
+          <tr class="border-b border-gray-100 last:border-0">
+            <td class="py-1.5 font-bold text-gray-900">#${escapeHtml(p.number)}</td>
+            <td class="py-1.5 font-medium text-gray-800">${escapeHtml(p.name)}</td>
+            <td class="py-1.5 text-right font-semibold text-gray-600">${escapeHtml(p.size)}</td>
+          </tr>`
+        )
+        .join('');
+
+      document.getElementById('summaryModalBody').innerHTML = `
+        <div id="submitErrorBox" class="hidden p-3 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700 font-medium"></div>
+        <div class="grid grid-cols-2 gap-3 bg-gray-50 p-3.5 rounded-xl border border-gray-200/80 text-xs">
+          <div><span class="text-gray-500 block">Team</span><strong class="text-gray-900">${escapeHtml(state.teamName)}</strong></div>
+          <div><span class="text-gray-500 block">Garment Color</span><strong class="text-gray-900">${escapeHtml(state.color.name)}</strong></div>
+          <div><span class="text-gray-500 block">Logo Placement</span><strong class="text-gray-900">${escapeHtml(state.placement)} (${Math.round(state.scale * 100)}%)</strong></div>
+          <div><span class="text-gray-500 block">Total Jerseys</span><strong class="text-gray-900">${state.players.length}</strong></div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Size Breakdown</p>
+          <div class="flex flex-wrap gap-1.5">${sizeBreakdown}</div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Roster Manifest</p>
+          <table class="w-full text-xs">
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById('summaryModalFooter').innerHTML = `
+        <button type="button" onclick="closeSummaryModal()" class="px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100">
+          Keep Editing
+        </button>
+        <button id="confirmSubmitBtn" type="button" onclick="submitTeamOrder()" class="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+          Confirm &amp; Submit Order
+        </button>
+      `;
+
+      const modal = document.getElementById('summaryModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeSummaryModal() {
+      const modal = document.getElementById('summaryModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    async function submitTeamOrder() {
+      const btn = document.getElementById('confirmSubmitBtn');
+      const errBox = document.getElementById('submitErrorBox');
+      errBox.classList.add('hidden');
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting...';
+
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamName: state.teamName,
+            contactEmail: state.contactEmail,
+            contactPhone: state.contactPhone,
+            notes: state.notes,
+            color: state.color,
+            placement: state.placement,
+            scale: state.scale,
+            yOffset: state.yOffset,
+            logoDataUrl: state.logoDataUrl,
+            players: state.players
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to submit order');
+        }
+
+        document.getElementById('summaryModalBody').innerHTML = `
+          <div class="text-center py-6 space-y-3">
+            <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 mx-auto flex items-center justify-center text-xl font-bold">&#10003;</div>
+            <h4 class="text-lg font-bold text-gray-900">Order Submitted!</h4>
+            <p class="text-xs text-gray-600 max-w-sm mx-auto">
+              Your team mockup and roster for <strong>${escapeHtml(state.teamName)}</strong> have been sent to the admin dashboard.
+            </p>
+            <div class="inline-block px-3 py-1.5 rounded-lg bg-gray-100 border border-gray-200 text-xs font-mono font-bold text-gray-800">
+              Order ID: ${escapeHtml(data.orderId)}
+            </div>
+          </div>
+        `;
+        document.getElementById('summaryModalFooter').innerHTML = `
+          <a href="/admin.html" class="px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100">
+            View in Admin Dashboard
+          </a>
+          <button type="button" onclick="closeSummaryModal()" class="px-4 py-2 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+            Done
+          </button>
+        `;
+      } catch (err) {
+        errBox.textContent = err.message;
+        errBox.classList.remove('hidden');
+        btn.disabled = false;
+        btn.textContent = 'Confirm & Submit Order';
+      }
+    }
+
+    function resetDefaults() {
+      state = {
+        teamName: 'Apex United FC',
+        contactEmail: '',
+        contactPhone: '',
+        notes: '',
+        color: COLORS[0],
+        side: 'front',
+        logoDataUrl: '',
+        placement: 'left-chest',
+        scale: 1,
+        yOffset: 0,
+        activePlayerId: 1,
+        players: [
+          { id: 1, name: 'V. STARK', number: '10', size: 'L' },
+          { id: 2, name: 'M. CHEN', number: '7', size: 'M' },
+          { id: 3, name: 'A. PATEL', number: '9', size: 'XL' }
+        ]
+      };
+      document.getElementById('teamNameInput').value = state.teamName;
+      document.getElementById('contactEmailInput').value = '';
+      document.getElementById('contactPhoneInput').value = '';
+      document.getElementById('notesInput').value = '';
+      document.getElementById('logoFileInput').value = '';
+      document.getElementById('placementSelect').value = 'left-chest';
+      document.getElementById('logoScaleSlider').value = '1';
+      document.getElementById('logoYSlider').value = '0';
+      document.getElementById('scaleValueLabel').textContent = '100%';
+      document.getElementById('yOffsetLabel').textContent = '0px';
+      setSide('front');
+      renderColorSwatches();
+      renderRoster();
+      syncMockup();
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    init();
+  </script>
+</body>
+</html>

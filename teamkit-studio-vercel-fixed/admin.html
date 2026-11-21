@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeamKit Admin — Orders & Live Mockup Inspector</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f4f5f7; color: #111827; }
+    .font-jersey { font-family: 'Barlow Condensed', sans-serif; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+  <!-- Login Screen -->
+  <div id="loginScreen" class="flex-1 flex items-center justify-center p-4">
+    <div class="bg-white max-w-sm w-full rounded-2xl shadow-lg border border-gray-200 p-6 space-y-5">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gray-900 text-white flex items-center justify-center font-jersey text-xl font-extrabold">TK</div>
+        <div>
+          <h1 class="text-base font-bold text-gray-900">TeamKit Admin Access</h1>
+          <p class="text-xs text-gray-500">Sign in to view team submissions &amp; mockups</p>
+        </div>
+      </div>
+
+      <form onsubmit="handleAdminLogin(event)" class="space-y-3">
+        <div>
+          <label for="adminPasswordInput" class="block text-xs font-semibold text-gray-700 mb-1">Admin Password</label>
+          <input id="adminPasswordInput" type="password" required placeholder="Enter admin password"
+                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900" />
+          <p class="text-[11px] text-gray-400 mt-1">Default password: <code class="bg-gray-100 px-1 rounded text-gray-700">admin123</code> (override with <code class="bg-gray-100 px-1 rounded">ADMIN_PASSWORD</code> env var on Vercel)</p>
+        </div>
+        <p id="loginError" class="text-xs text-red-600 font-medium hidden"></p>
+        <button type="submit" class="w-full py-2 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition">
+          Unlock Dashboard
+        </button>
+      </form>
+
+      <div class="pt-2 border-t border-gray-100 text-center">
+        <a href="/" class="text-xs text-gray-500 hover:text-gray-900">&larr; Back to Team Order Form</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Screen -->
+  <div id="dashboardScreen" class="hidden flex-1 flex-col">
+    <header class="bg-white border-b border-gray-200 px-6 py-3.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-20">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gray-900 text-white flex items-center justify-center font-jersey text-xl font-extrabold">TK</div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold tracking-tight text-gray-900">Admin Order Dashboard</h1>
+            <span id="storageModeBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">Checking storage...</span>
+          </div>
+          <p class="text-xs text-gray-500">Review submitted team rosters, inspect live shirt mockups, and export CSV</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5">
+        <a href="/" class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+          Open Order Form
+        </a>
+        <button type="button" onclick="loadOrders()" class="px-3 py-1.5 text-xs font-semibold text-gray-900 bg-gray-100 border border-gray-300 rounded-lg hover:bg-gray-200">
+          Refresh
+        </button>
+        <button type="button" onclick="logoutAdmin()" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100">
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <main class="max-w-6xl w-full mx-auto p-6 space-y-6">
+      <!-- Stats Row -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-gray-200">
+          <p class="text-xs text-gray-500">Total Team Orders</p>
+          <p id="statTotalOrders" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200">
+          <p class="text-xs text-gray-500">Total Jerseys Ordered</p>
+          <p id="statTotalJerseys" class="text-2xl font-bold text-gray-900 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200">
+          <p class="text-xs text-gray-500">New / Pending</p>
+          <p id="statNewOrders" class="text-2xl font-bold text-amber-600 mt-1">0</p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-gray-200">
+          <p class="text-xs text-gray-500">Completed</p>
+          <p id="statCompletedOrders" class="text-2xl font-bold text-emerald-600 mt-1">0</p>
+        </div>
+      </div>
+
+      <!-- Orders Table -->
+      <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-xs">
+        <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-sm font-bold text-gray-900">Submitted Team Orders</h2>
+          <input id="searchInput" type="text" oninput="renderOrdersTable()" placeholder="Search team name, email, or Order ID..."
+                 class="px-3 py-1.5 text-xs border border-gray-300 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-gray-900" />
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-200 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                <th class="py-3 px-4">Order ID</th>
+                <th class="py-3 px-4">Team &amp; Contact</th>
+                <th class="py-3 px-4">Shirt &amp; Logo</th>
+                <th class="py-3 px-4">Qty</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody" class="divide-y divide-gray-100 text-xs"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Order Detail & Live Mockup Modal -->
+  <div id="orderDetailModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-gray-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <h3 id="detailModalTitle" class="text-base font-bold text-gray-900">Order Details</h3>
+          <p id="detailModalSub" class="text-xs text-gray-500"></p>
+        </div>
+        <button type="button" onclick="closeDetailModal()" class="text-gray-400 hover:text-gray-700 text-xl leading-none">&times;</button>
+      </div>
+      <div id="detailModalBody" class="p-6 max-h-[75vh] overflow-y-auto"></div>
+      <div class="px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+        <button id="exportCsvBtn" type="button" class="px-3.5 py-2 text-xs font-semibold text-gray-800 bg-white border border-gray-300 rounded-lg hover:bg-gray-100">
+          Download Roster CSV
+        </button>
+        <button type="button" onclick="closeDetailModal()" class="px-4 py-2 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-gray-800">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let adminToken = sessionStorage.getItem('teamkit_admin_token') || '';
+    let allOrders = [];
+
+    if (adminToken) {
+      showDashboard();
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const password = document.getElementById('adminPasswordInput').value;
+      const errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+
+        adminToken = data.token;
+        sessionStorage.setItem('teamkit_admin_token', adminToken);
+        showDashboard();
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.classList.remove('hidden');
+      }
+    }
+
+    function logoutAdmin() {
+      adminToken = '';
+      sessionStorage.removeItem('teamkit_admin_token');
+      document.getElementById('dashboardScreen').classList.add('hidden');
+      document.getElementById('dashboardScreen').classList.remove('flex');
+      document.getElementById('loginScreen').classList.remove('hidden');
+    }
+
+    function showDashboard() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('dashboardScreen').classList.remove('hidden');
+      document.getElementById('dashboardScreen').classList.add('flex');
+      loadOrders();
+    }
+
+    async function loadOrders() {
+      try {
+        const res = await fetch('/api/orders', {
+          headers: { 'Authorization': 'Bearer ' + adminToken }
+        });
+        if (res.status === 401) {
+          logoutAdmin();
+          return;
+        }
+        const data = await res.json();
+        allOrders = data.orders || [];
+
+        const badge = document.getElementById('storageModeBadge');
+        if (data.persistent) {
+          badge.textContent = 'Upstash Redis Connected';
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+        } else {
+          badge.textContent = 'Demo Memory Mode (Connect Redis for permanent storage)';
+          badge.className = 'text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200';
+        }
+
+        updateStats();
+        renderOrdersTable();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('statTotalOrders').textContent = allOrders.length;
+      const totalJerseys = allOrders.reduce((sum, o) => sum + (o.players ? o.players.length : 0), 0);
+      document.getElementById('statTotalJerseys').textContent = totalJerseys;
+      document.getElementById('statNewOrders').textContent = allOrders.filter((o) => o.status === 'New').length;
+      document.getElementById('statCompletedOrders').textContent = allOrders.filter((o) => o.status === 'Completed').length;
+    }
+
+    function renderOrdersTable() {
+      const tbody = document.getElementById('ordersTableBody');
+      const q = (document.getElementById('searchInput').value || '').toLowerCase();
+
+      const filtered = allOrders.filter((o) =>
+        o.teamName.toLowerCase().includes(q) ||
+        o.id.toLowerCase().includes(q) ||
+        (o.contactEmail || '').toLowerCase().includes(q)
+      );
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-10 text-center text-gray-400">
+              No orders found yet. Submit a team order on the <a href="/" class="underline text-gray-700 font-medium">Order Form</a> to see it appear here.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map((order) => {
+        const dateStr = new Date(order.createdAt).toLocaleString();
+        const statusColors = {
+          'New': 'bg-amber-50 text-amber-700 border-amber-200',
+          'In Production': 'bg-blue-50 text-blue-700 border-blue-200',
+          'Completed': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          'Cancelled': 'bg-gray-100 text-gray-600 border-gray-200'
+        };
+        const badgeCls = statusColors[order.status] || statusColors['New'];
+
+        return `
+          <tr class="hover:bg-gray-50/80">
+            <td class="py-3 px-4 font-mono font-bold text-gray-900">
+              ${escapeHtml(order.id)}
+              <span class="block text-[10px] font-sans font-normal text-gray-400">${escapeHtml(dateStr)}</span>
+            </td>
+            <td class="py-3 px-4">
+              <p class="font-bold text-gray-900">${escapeHtml(order.teamName)}</p>
+              <p class="text-[11px] text-gray-500">${escapeHtml(order.contactEmail || 'No email')} ${order.contactPhone ? '• ' + escapeHtml(order.contactPhone) : ''}</p>
+            </td>
+            <td class="py-3 px-4">
+              <div class="flex items-center gap-2">
+                <span class="w-4 h-4 rounded-full border border-gray-300 inline-block shrink-0" style="background:${escapeHtml(order.color?.hex || '#1e293b')}"></span>
+                <span class="font-medium text-gray-800">${escapeHtml(order.color?.name || 'Custom')}</span>
+                ${order.logoDataUrl ? '<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">Logo</span>' : ''}
+              </div>
+            </td>
+            <td class="py-3 px-4 font-bold text-gray-900">${order.players?.length || 0} pcs</td>
+            <td class="py-3 px-4">
+              <select onchange="updateOrderStatus('${escapeHtml(order.id)}', this.value)"
+                      class="px-2 py-1 rounded-md border text-[11px] font-semibold ${badgeCls}">
+                ${['New', 'In Production', 'Completed', 'Cancelled'].map((st) =>
+                  `<option value="${st}" ${order.status === st ? 'selected' : ''}>${st}</option>`
+                ).join('')}
+              </select>
+            </td>
+            <td class="py-3 px-4 text-right space-x-1.5">
+              <button type="button" onclick="openOrderDetail('${escapeHtml(order.id)}')"
+                      class="px-2.5 py-1 text-xs font-semibold text-white bg-gray-900 rounded-md hover:bg-gray-800">
+                Inspect
+              </button>
+              <button type="button" onclick="deleteOrder('${escapeHtml(order.id)}')"
+                      class="px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 rounded-md">
+                Delete
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function updateOrderStatus(id, status) {
+      await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + adminToken
+        },
+        body: JSON.stringify({ id, status })
+      });
+      loadOrders();
+    }
+
+    async function deleteOrder(id) {
+      if (!confirm('Delete order ' + id + '?')) return;
+      await fetch('/api/orders?id=' + encodeURIComponent(id), {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + adminToken }
+      });
+      loadOrders();
+    }
+
+    function openOrderDetail(id) {
+      const order = allOrders.find((o) => o.id === id);
+      if (!order) return;
+
+      document.getElementById('detailModalTitle').textContent = `${order.teamName} (${order.id})`;
+      document.getElementById('detailModalSub').textContent =
+        `Submitted ${new Date(order.createdAt).toLocaleString()} • ${order.contactEmail || 'No email'}`;
+
+      const baseX = order.placement === 'center-chest' ? 210 : (order.placement === 'pocket-right' ? 168 : 252);
+      const baseY = order.placement === 'center-chest' ? 156 : 152;
+      const transformStr = `translate(${baseX}, ${baseY + (order.yOffset || 0)}) scale(${order.scale || 1})`;
+      const blendMode = order.color?.dark ? 'normal' : 'multiply';
+
+      const rowsHtml = (order.players || []).map((p) => `
+        <tr class="border-b border-gray-100">
+          <td class="py-1.5 font-bold text-gray-900">#${escapeHtml(p.number)}</td>
+          <td class="py-1.5 font-medium text-gray-800">${escapeHtml(p.name)}</td>
+          <td class="py-1.5 text-right font-semibold text-gray-600">${escapeHtml(p.size)}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('detailModalBody').innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <div class="bg-gray-100 rounded-xl p-4 flex flex-col items-center border border-gray-200">
+            <svg viewBox="0 0 420 460" class="w-56 h-auto drop-shadow-md" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <clipPath id="adminShirtClip">
+                  <path d="M128 52 L162 36 Q210 62 258 36 L292 52 L386 116 L346 184 L302 156 L302 424 Q210 434 118 424 L118 156 L74 184 L34 116 Z" />
+                </clipPath>
+              </defs>
+              <g clip-path="url(#adminShirtClip)">
+                <rect x="0" y="0" width="420" height="460" fill="${escapeHtml(order.color?.hex || '#1e293b')}" />
+                <g transform="${transformStr}">
+                  ${order.logoDataUrl
+                    ? `<image x="-34" y="-34" width="68" height="68" preserveAspectRatio="xMidYMid meet" href="${order.logoDataUrl}" style="mix-blend-mode:${blendMode}" />`
+                    : `<text x="0" y="4" text-anchor="middle" fill="#ffffff" font-size="11" opacity="0.7">NO LOGO</text>`
+                  }
+                </g>
+              </g>
+              <path d="M158 38 Q210 74 262 38 L254 52 Q210 84 166 52 Z" fill="#0f172a" opacity="0.4" />
+            </svg>
+            <p class="text-[11px] text-gray-500 mt-2">${escapeHtml(order.color?.name)} • ${escapeHtml(order.placement)} (${Math.round((order.scale || 1) * 100)}%)</p>
+            ${order.logoDataUrl ? `<a href="${order.logoDataUrl}" download="${escapeHtml(order.id)}-logo.png" class="mt-2 text-xs font-semibold text-blue-600 hover:underline">Download Uploaded Logo</a>` : ''}
+          </div>
+
+          <div class="space-y-4">
+            <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 text-xs space-y-1">
+              <p><span class="text-gray-500">Phone:</span> <strong>${escapeHtml(order.contactPhone || '—')}</strong></p>
+              <p><span class="text-gray-500">Notes:</span> <strong>${escapeHtml(order.notes || 'None')}</strong></p>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">Player Roster (${order.players?.length || 0})</h4>
+              <table class="w-full text-xs">
+                <thead>
+                  <tr class="border-b border-gray-200 text-gray-400 text-[10px] uppercase">
+                    <th class="py-1 text-left">No.</th>
+                    <th class="py-1 text-left">Name</th>
+                    <th class="py-1 text-right">Size</th>
+                  </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('exportCsvBtn').onclick = () => downloadOrderCsv(order);
+
+      const modal = document.getElementById('orderDetailModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeDetailModal() {
+      const modal = document.getElementById('orderDetailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function downloadOrderCsv(order) {
+      const lines = [['Order ID', 'Team Name', 'Shirt Color', 'Player Name', 'Number', 'Size']];
+      (order.players || []).forEach((p) => {
+        lines.push([order.id, order.teamName, order.color?.name || '', p.name, p.number, p.size]);
+      });
+      const csv = lines.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${order.id}-${order.teamName.replace(/\s+/g, '_')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
